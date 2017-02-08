@@ -14,7 +14,23 @@ import (
 
 // ErrDuplicate is returned by AddContact when a contact with same id
 // already exists in Mojo
-var ErrDuplicate = errors.New("mojo: contact with same ID already exists")
+type ErrDuplicate struct {
+	ID string
+}
+
+func (e *ErrDuplicate) Error() string {
+	return fmt.Sprintf("mojo: contact with ID %v already exists", e.ID)
+}
+
+// ErrInvalid is returned by AddContact when a validation error is detected,
+// like missing a required field
+type ErrInvalid struct {
+	Msg string
+}
+
+func (e *ErrInvalid) Error() string {
+	return fmt.Sprintf("mojo: %v", e.Msg)
+}
 
 // Mojo client
 type Mojo struct {
@@ -67,14 +83,37 @@ func (mj *Mojo) AddContact(c Contact) error {
 	if err := json.Unmarshal(resbody, &data); err != nil {
 		return fmt.Errorf("mojo: decoding response body (%v)", err)
 	}
-	if len(data.Errors) == 1 && strings.HasPrefix(data.Errors[0], "Duplicated 'api_contact_id':") {
-		return ErrDuplicate
+	if data.isDuplicate() {
+		return &ErrDuplicate{ID: data.duplicatedID()}
+	}
+	if data.isError() {
+		return &ErrInvalid{Msg: data.errorMsg()}
 	}
 	return nil
 }
 
 type mojoResponse struct {
-	Errors []string `json:"errors"`
+	Errors                 []string `json:"errors"`
+	DuplicatedAPIContactID []string `json:"duplicated_api_contact_id"`
+}
+
+func (resp mojoResponse) isError() bool {
+	return len(resp.Errors) >= 1
+}
+
+func (resp mojoResponse) isDuplicate() bool {
+	return resp.isError() && len(resp.DuplicatedAPIContactID) == 1
+}
+
+func (resp mojoResponse) errorMsg() string {
+	return strings.Join(resp.Errors, " ")
+}
+
+func (resp mojoResponse) duplicatedID() string {
+	if !resp.isDuplicate() {
+		return ""
+	}
+	return resp.DuplicatedAPIContactID[0]
 }
 
 // Contact to be created in Mojo

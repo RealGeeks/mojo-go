@@ -130,7 +130,26 @@ func TestMojo_AddContact_Duplicate(t *testing.T) {
 		Name:    "Jason Polakow",
 	})
 
-	equals(t, mojo.ErrDuplicate, err)
+	equals(t, &mojo.ErrDuplicate{ID: "654A4BFB-41B6-4058-B91E-879ECE2C5A0A"}, err)
+}
+
+func TestMojo_AddContact_MissingGroup(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `{"errors": ["All contacts should have the same group_id."], "result": null}`)
+	}))
+	defer ts.Close()
+
+	client := &mojo.Mojo{
+		URL:   ts.URL,
+		Token: "5cf3edd8ccc78ea750abdcb9367fb072",
+	}
+	err := client.AddContact(mojo.Contact{
+		ID:      "654A4BFB-41B6-4058-B91E-879ECE2C5A0A",
+		GroupID: 2,
+		Name:    "Jason Polakow",
+	})
+
+	equals(t, &mojo.ErrInvalid{Msg: "All contacts should have the same group_id."}, err)
 }
 
 func TestMojo_AddContact_InvalidStatusCode(t *testing.T) {
