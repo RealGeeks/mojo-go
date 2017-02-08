@@ -42,7 +42,7 @@ func (mj *Mojo) AddContact(c Contact) error {
 	if err != nil {
 		return fmt.Errorf("mojo: encoding body (%v)", err)
 	}
-	req, err := http.NewRequest("POST", mj.URL+"/api/contacts/bulk_create/", bytes.NewReader(reqbody))
+	req, err := http.NewRequest("POST", prefixHTTP(mj.URL)+"/api/contacts/bulk_create/", bytes.NewReader(reqbody))
 	if err != nil {
 		return fmt.Errorf("mojo: building request (%v)", err)
 	}
@@ -140,4 +140,11 @@ type contact struct {
 type media struct {
 	Type  int    `json:"type"`
 	Value string `json:"value"`
+}
+
+func prefixHTTP(domain string) string {
+	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
+		return domain
+	}
+	return "https://" + domain
 }
