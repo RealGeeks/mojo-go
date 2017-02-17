@@ -32,6 +32,16 @@ func (e *ErrInvalid) Error() string {
 	return fmt.Sprintf("mojo: %v", e.Msg)
 }
 
+// ErrForbidden is returned on status code 403, usually due to invalid
+// access token
+type ErrForbidden struct {
+	Msg string
+}
+
+func (e *ErrForbidden) Error() string {
+	return fmt.Sprintf("mojo: %v", e.Msg)
+}
+
 // Mojo client
 type Mojo struct {
 	// URL for this account, including protocol + host, example:
@@ -76,6 +86,9 @@ func (mj *Mojo) AddContact(c Contact) error {
 	if err != nil {
 		return fmt.Errorf("mojo: reading response (%v)", err)
 	}
+	if res.StatusCode == 403 {
+		return newForbidden(resbody)
+	}
 	if res.StatusCode != 200 {
 		return fmt.Errorf("mojo: invalid status code %d with body %v", res.StatusCode, string(resbody))
 	}
@@ -90,6 +103,19 @@ func (mj *Mojo) AddContact(c Contact) error {
 		return &ErrInvalid{Msg: data.errorMsg()}
 	}
 	return nil
+}
+
+func newForbidden(body []byte) error {
+	var data struct {
+		Detail string `json:"detail"`
+	}
+	var msg string
+	if err := json.Unmarshal(body, &data); err != nil || data.Detail == "" {
+		msg = string(body)
+	} else {
+		msg = data.Detail
+	}
+	return &ErrForbidden{Msg: msg}
 }
 
 type mojoResponse struct {

@@ -173,6 +173,66 @@ func TestMojo_AddContact_InvalidStatusCode(t *testing.T) {
 	equals(t, "mojo: invalid status code 500 with body opssss", err.Error())
 }
 
+func TestMojo_AddContact_Forbidden(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(403)
+		io.WriteString(w, `{"detail": "Invalid access_token"}`)
+	}))
+	defer ts.Close()
+
+	client := &mojo.Mojo{
+		URL:   ts.URL,
+		Token: "invalid",
+	}
+	err := client.AddContact(mojo.Contact{
+		ID:      "654A4BFB-41B6-4058-B91E-879ECE2C5A0A",
+		GroupID: 2,
+		Name:    "Jason Polakow",
+	})
+
+	equals(t, &mojo.ErrForbidden{Msg: "Invalid access_token"}, err)
+}
+
+func TestMojo_AddContact_ForbiddenNotJSON(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(403)
+		io.WriteString(w, `get out of here`) // unknown json format
+	}))
+	defer ts.Close()
+
+	client := &mojo.Mojo{
+		URL:   ts.URL,
+		Token: "invalid",
+	}
+	err := client.AddContact(mojo.Contact{
+		ID:      "654A4BFB-41B6-4058-B91E-879ECE2C5A0A",
+		GroupID: 2,
+		Name:    "Jason Polakow",
+	})
+
+	equals(t, &mojo.ErrForbidden{Msg: `get out of here`}, err)
+}
+
+func TestMojo_AddContact_ForbiddenUnknownBody(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(403)
+		io.WriteString(w, `{"error": "ops"}`) // unknown json format
+	}))
+	defer ts.Close()
+
+	client := &mojo.Mojo{
+		URL:   ts.URL,
+		Token: "invalid",
+	}
+	err := client.AddContact(mojo.Contact{
+		ID:      "654A4BFB-41B6-4058-B91E-879ECE2C5A0A",
+		GroupID: 2,
+		Name:    "Jason Polakow",
+	})
+
+	equals(t, &mojo.ErrForbidden{Msg: `{"error": "ops"}`}, err)
+}
+
 func TestMojo_AddContact_InvalidJSONResponse(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `ops`)
