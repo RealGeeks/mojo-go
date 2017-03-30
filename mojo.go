@@ -96,6 +96,9 @@ func (mj *Mojo) AddContact(c Contact) error {
 	if err := json.Unmarshal(resbody, &data); err != nil {
 		return fmt.Errorf("mojo: decoding response body (%v)", err)
 	}
+	if data.isLockedError() {
+		return fmt.Errorf("mojo: %s", data.errorMsg())
+	}
 	if data.isDuplicate() {
 		return &ErrDuplicate{ID: data.duplicatedID()}
 	}
@@ -125,6 +128,10 @@ type mojoResponse struct {
 
 func (resp mojoResponse) isError() bool {
 	return len(resp.Errors) >= 1
+}
+
+func (resp mojoResponse) isLockedError() bool {
+	return len(resp.Errors) == 1 && resp.Errors[0] == "Previous request was not finished or was interrupted."
 }
 
 func (resp mojoResponse) isDuplicate() bool {

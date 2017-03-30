@@ -152,6 +152,31 @@ func TestMojo_AddContact_MissingGroup(t *testing.T) {
 	equals(t, &mojo.ErrInvalid{Msg: "All contacts should have the same group_id."}, err)
 }
 
+func TestMojo_AddContact_PreviousRequestUnfinished(t *testing.T) {
+	// Mojo won't execute contact creation from a new request until the
+	// previous one is complete as to prevent duplicates/errors.
+	//
+	// If a new request comes in while the previous one has not finished
+	// they return this error
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `{"errors": ["Previous request was not finished or was interrupted."], "result": null}`)
+	}))
+	defer ts.Close()
+
+	client := &mojo.Mojo{
+		URL:   ts.URL,
+		Token: "5cf3edd8ccc78ea750abdcb9367fb072",
+	}
+	err := client.AddContact(mojo.Contact{
+		ID:      "654A4BFB-41B6-4058-B91E-879ECE2C5A0A",
+		GroupID: 2,
+		Name:    "Jason Polakow",
+	})
+
+	assert(t, err != nil, "should return error")
+	equals(t, "mojo: Previous request was not finished or was interrupted.", err.Error())
+}
+
 func TestMojo_AddContact_InvalidStatusCode(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
