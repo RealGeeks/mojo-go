@@ -19,7 +19,7 @@ type ErrDuplicate struct {
 }
 
 func (e *ErrDuplicate) Error() string {
-	return fmt.Sprintf("mojo: contacts already exist ", strings.Join(e.IDs, ","))
+	return fmt.Sprintf("mojo: contacts already exist %s", strings.Join(e.IDs, ","))
 }
 
 // ErrInvalid is returned by AddContact when a validation error is detected,
