@@ -168,7 +168,20 @@ func TestMojo_AddContactMultiple(t *testing.T) {
 
 func TestMojo_AddContact_Duplicate(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"duplicated_api_contact_id": ["654A4BFB-41B6-4058-B91E-879ECE2C5A0A"], "errors": ["Duplicated 'api_contact_id': 654A4BFB-41B6-4058-B91E-879ECE2C5A0A"], "result": []}`)
+		io.WriteString(w, `{
+			"duplicated_api_contact_id": [
+				"a030a3fae0aa57f6bebf368fc4370221",
+				"68d480032155501eb2b2ca4c6a053306"
+			],
+			"errors": ["Duplicated 'api_contact_id': a030a3fae0aa57f6bebf368fc4370221, 68d480032155501eb2b2ca4c6a053306"],
+			"result": [{
+				"api_contact_id": "f2d4a646cebe53f6b9b3f7b846e11f1d",
+				"contact_id": 816
+			}, {
+				"api_contact_id": "32ed3a5b524758968d676279fdc9aaaf",
+				"contact_id": 815
+			}]
+		}`)
 	}))
 	defer ts.Close()
 
@@ -176,13 +189,12 @@ func TestMojo_AddContact_Duplicate(t *testing.T) {
 		URL:   ts.URL,
 		Token: "5cf3edd8ccc78ea750abdcb9367fb072",
 	}
-	err := client.AddContact(mojo.Contact{
-		ID:      "654A4BFB-41B6-4058-B91E-879ECE2C5A0A",
-		GroupID: 2,
-		Name:    "Jason Polakow",
-	})
+	err := client.AddContact(
+		mojo.Contact{ID: "a030a3fae0aa57f6bebf368fc4370221", GroupID: 2, Name: "Bob"},
+		mojo.Contact{ID: "68d480032155501eb2b2ca4c6a053306", GroupID: 2, Name: "Ana"},
+	)
 
-	equals(t, &mojo.ErrDuplicate{ID: "654A4BFB-41B6-4058-B91E-879ECE2C5A0A"}, err)
+	equals(t, &mojo.ErrDuplicate{IDs: []string{"a030a3fae0aa57f6bebf368fc4370221", "68d480032155501eb2b2ca4c6a053306"}}, err)
 }
 
 func TestMojo_AddContact_MissingGroup(t *testing.T) {

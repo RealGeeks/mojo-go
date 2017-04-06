@@ -15,11 +15,11 @@ import (
 // ErrDuplicate is returned by AddContact when a contact with same id
 // already exists in Mojo
 type ErrDuplicate struct {
-	ID string
+	IDs []string
 }
 
 func (e *ErrDuplicate) Error() string {
-	return fmt.Sprintf("mojo: contact with ID %v already exists", e.ID)
+	return fmt.Sprintf("mojo: contacts already exist ", strings.Join(e.IDs, ","))
 }
 
 // ErrInvalid is returned by AddContact when a validation error is detected,
@@ -101,7 +101,7 @@ func (mj *Mojo) AddContact(contacts ...Contact) error {
 		return fmt.Errorf("mojo: %s", data.errorMsg())
 	}
 	if data.isDuplicate() {
-		return &ErrDuplicate{ID: data.duplicatedID()}
+		return &ErrDuplicate{IDs: data.duplicatedIDs()}
 	}
 	if data.isError() {
 		return &ErrInvalid{Msg: data.errorMsg()}
@@ -136,18 +136,18 @@ func (resp mojoResponse) isLockedError() bool {
 }
 
 func (resp mojoResponse) isDuplicate() bool {
-	return resp.isError() && len(resp.DuplicatedAPIContactID) == 1
+	return resp.isError() && len(resp.DuplicatedAPIContactID) > 0
 }
 
 func (resp mojoResponse) errorMsg() string {
 	return strings.Join(resp.Errors, " ")
 }
 
-func (resp mojoResponse) duplicatedID() string {
+func (resp mojoResponse) duplicatedIDs() []string {
 	if !resp.isDuplicate() {
-		return ""
+		return []string{}
 	}
-	return resp.DuplicatedAPIContactID[0]
+	return resp.DuplicatedAPIContactID
 }
 
 // Contact to be created in Mojo
