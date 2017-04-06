@@ -90,7 +90,7 @@ func TestMojoContact_MarshalJSON_EmptyMediaSet(t *testing.T) {
 //
 
 func TestMojo_AddContact(t *testing.T) {
-	var body string
+	var body []map[string]interface{}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body = readBody(t, r)
 		io.WriteString(w, `{"duplicated_api_contact_id": [], "errors": [], "result": [{"api_contact_id": "654A4BFB-41B6-4058-B91E-879ECE2C5A0A", "contact_id": 58}]}`)
@@ -108,10 +108,62 @@ func TestMojo_AddContact(t *testing.T) {
 	})
 
 	ok(t, err)
-	equals(t, `[{`+
-		`"api_contact_id":"654A4BFB-41B6-4058-B91E-879ECE2C5A0A",`+
-		`"full_name":"Jason Polakow",`+
-		`"contactgroup_set":[{"group_id":2}]}]`, body)
+	equals(t, []map[string]interface{}{
+		map[string]interface{}{
+			"api_contact_id":   "654A4BFB-41B6-4058-B91E-879ECE2C5A0A",
+			"full_name":        "Jason Polakow",
+			"contactgroup_set": []interface{}{map[string]interface{}{"group_id": 2.0}},
+		}}, body)
+}
+
+func TestMojo_AddContactMultiple(t *testing.T) {
+	var body []map[string]interface{}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body = readBody(t, r)
+		io.WriteString(w, `{"duplicated_api_contact_id": [], "errors": [], "result": [{"api_contact_id": "654A4BFB-41B6-4058-B91E-879ECE2C5A0A", "contact_id": 58}]}`)
+	}))
+	defer ts.Close()
+
+	client := &mojo.Mojo{
+		URL:   ts.URL,
+		Token: "5cf3edd8ccc78ea750abdcb9367fb072",
+	}
+	c1 := mojo.Contact{
+		ID:          "654a4bfb41b64058b91e879ece2c5a0a",
+		GroupID:     2,
+		Name:        "Jason Polakow",
+		Address:     "123 Paia, Maui",
+		Email:       "jp@jp.com",
+		MobilePhone: "808-212-2211",
+		WorkPhone:   "808-222-0101",
+		HomePhone:   "808-812-8213",
+	}
+	c2 := mojo.Contact{
+		ID:      "2755a963e0e549128c27a9f78ee8afde",
+		GroupID: 3,
+		Name:    "Amanda",
+	}
+	err := client.AddContact(c1, c2)
+
+	ok(t, err)
+	equals(t, []map[string]interface{}{
+		map[string]interface{}{
+			"api_contact_id": "654a4bfb41b64058b91e879ece2c5a0a",
+			"address":        "123 Paia, Maui",
+			"full_name":      "Jason Polakow",
+			"mediainfo_set": []interface{}{
+				map[string]interface{}{"type": 1.0, "value": "8082220101"},
+				map[string]interface{}{"type": 2.0, "value": "8082122211"},
+				map[string]interface{}{"type": 3.0, "value": "8088128213"},
+				map[string]interface{}{"type": 4.0, "value": "jp@jp.com"}},
+			"contactgroup_set": []interface{}{
+				map[string]interface{}{"group_id": 2.0}}},
+		map[string]interface{}{
+			"api_contact_id": "2755a963e0e549128c27a9f78ee8afde",
+			"full_name":      "Amanda",
+			"contactgroup_set": []interface{}{
+				map[string]interface{}{"group_id": 3.0}}},
+	}, body)
 }
 
 func TestMojo_AddContact_Duplicate(t *testing.T) {
@@ -278,12 +330,15 @@ func TestMojo_AddContact_InvalidJSONResponse(t *testing.T) {
 	equals(t, "mojo: decoding response body (invalid character 'o' looking for beginning of value)", err.Error())
 }
 
-func readBody(t *testing.T, r *http.Request) string {
-	body, err := ioutil.ReadAll(r.Body)
+func readBody(t *testing.T, r *http.Request) (body []map[string]interface{}) {
+	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("Failed to read request body: %s", err)
 	}
-	return string(body)
+	if err := json.Unmarshal(data, &body); err != nil {
+		t.Fatalf("Failed to read request body: %s", err)
+	}
+	return body
 }
 
 // assert fails the test if the condition is false.

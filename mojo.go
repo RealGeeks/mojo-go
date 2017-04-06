@@ -63,9 +63,10 @@ type Mojo struct {
 //
 // Return ErrDuplicate if a contact with same ID already exists. Return other errors
 // if can't make the request of if Mojo returns an error
-func (mj *Mojo) AddContact(c Contact) error {
-	reqbody, err := json.Marshal([]Contact{c})
+func (mj *Mojo) AddContact(contacts ...Contact) error {
+	reqbody, err := json.Marshal(contacts)
 	if err != nil {
+		// TODO: return ErrInvalid
 		return fmt.Errorf("mojo: encoding body (%v)", err)
 	}
 	req, err := http.NewRequest("POST", prefixHTTP(mj.URL)+"/api/contacts/bulk_create/", bytes.NewReader(reqbody))
