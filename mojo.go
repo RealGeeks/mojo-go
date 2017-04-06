@@ -66,8 +66,7 @@ type Mojo struct {
 func (mj *Mojo) AddContact(contacts ...Contact) error {
 	reqbody, err := json.Marshal(contacts)
 	if err != nil {
-		// TODO: return ErrInvalid
-		return fmt.Errorf("mojo: encoding body (%v)", err)
+		return &ErrInvalid{Msg: err.Error()}
 	}
 	req, err := http.NewRequest("POST", prefixHTTP(mj.URL)+"/api/contacts/bulk_create/", bytes.NewReader(reqbody))
 	if err != nil {
