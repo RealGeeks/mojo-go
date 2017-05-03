@@ -25,7 +25,10 @@ func TestMojoContact_MarshalJSON(t *testing.T) {
 		GroupID:     2,
 		Name:        "Jason Polakow",
 		Email:       "jason@jp-australia.com",
-		Address:     "123 Hana Hwy, Maui",
+		Address:     "123 Hana Hwy",
+		City:        "Paia",
+		State:       "HI",
+		Zip:         "12345",
 		MobilePhone: "123-331-1245",
 		WorkPhone:   "1238889999",
 		HomePhone:   "(891) 234-1213",
@@ -37,7 +40,10 @@ func TestMojoContact_MarshalJSON(t *testing.T) {
 		`"api_contact_id":"654A4BFB-41B6-4058-B91E-879ECE2C5A0A",`+
 		`"full_name":"Jason Polakow",`+
 		`"contactgroup_set":[{"group_id":2}],`+
-		`"address":"123 Hana Hwy, Maui",`+
+		`"address":"123 Hana Hwy",`+
+		`"city":"Paia",`+
+		`"state":"HI",`+
+		`"zip_code":"12345",`+
 		`"mediainfo_set":[`+
 		`{"type":1,"value":"1238889999"},`+
 		`{"type":2,"value":"1233311245"},`+

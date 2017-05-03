@@ -153,14 +153,12 @@ func (resp mojoResponse) duplicatedIDs() []string {
 //
 // Either Name must provided OR at least one of Email, MobilePhone, WorkPhone, HomePhone
 type Contact struct {
-	ID          string // required
-	GroupID     int    // required
-	Name        string
-	Address     string
-	Email       string
-	MobilePhone string
-	WorkPhone   string
-	HomePhone   string
+	ID                                string // required
+	GroupID                           int    // required
+	Name                              string
+	Address, City, State, Zip         string
+	Email                             string
+	MobilePhone, WorkPhone, HomePhone string
 }
 
 func (c Contact) MarshalJSON() ([]byte, error) {
@@ -174,6 +172,9 @@ func (c Contact) MarshalJSON() ([]byte, error) {
 		ID:      c.ID,
 		Name:    c.Name,
 		Address: c.Address,
+		City:    c.City,
+		State:   c.State,
+		Zip:     c.Zip,
 		Group:   []map[string]int{{"group_id": c.GroupID}},
 	}
 	if c.WorkPhone != "" {
@@ -204,6 +205,9 @@ type contact struct {
 	Name    string           `json:"full_name"`
 	Group   []map[string]int `json:"contactgroup_set"`
 	Address string           `json:"address,omitempty"`
+	City    string           `json:"city,omitempty"`
+	State   string           `json:"state,omitempty"`
+	Zip     string           `json:"zip_code,omitempty"`
 	// list of phones and emails
 	// 1-work, 2-mobile, 3-home, 4-email, 5-other
 	Media []media `json:"mediainfo_set,omitempty"`
