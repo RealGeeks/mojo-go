@@ -32,6 +32,7 @@ func TestMojoContact_MarshalJSON(t *testing.T) {
 		MobilePhone: "123-331-1245",
 		WorkPhone:   "1238889999",
 		HomePhone:   "(891) 234-1213",
+		Notes:       []string{"called him today", "should mention new home"},
 	}
 	data, err := json.Marshal(contact)
 
@@ -44,6 +45,10 @@ func TestMojoContact_MarshalJSON(t *testing.T) {
 		`"city":"Paia",`+
 		`"state":"HI",`+
 		`"zip_code":"12345",`+
+		`"contactnote_set":[`+
+		`{"type":1,"contents":"called him today"},`+
+		`{"type":1,"contents":"should mention new home"}`+
+		`],`+
 		`"mediainfo_set":[`+
 		`{"type":1,"value":"1238889999"},`+
 		`{"type":2,"value":"1233311245"},`+

@@ -159,6 +159,7 @@ type Contact struct {
 	Address, City, State, Zip         string
 	Email                             string
 	MobilePhone, WorkPhone, HomePhone string
+	Notes                             []string
 }
 
 func (c Contact) MarshalJSON() ([]byte, error) {
@@ -189,7 +190,11 @@ func (c Contact) MarshalJSON() ([]byte, error) {
 	if c.Email != "" {
 		cc.Media = append(cc.Media, media{4, c.Email})
 	}
-	return json.Marshal(cc)
+	for _, nt := range c.Notes {
+		cc.Notes = append(cc.Notes, note{1, nt})
+	}
+	data, err := json.Marshal(cc)
+	return data, err
 }
 
 func cleanPhone(ph string) string {
@@ -208,6 +213,7 @@ type contact struct {
 	City    string           `json:"city,omitempty"`
 	State   string           `json:"state,omitempty"`
 	Zip     string           `json:"zip_code,omitempty"`
+	Notes   []note           `json:"contactnote_set,omitempty"`
 	// list of phones and emails
 	// 1-work, 2-mobile, 3-home, 4-email, 5-other
 	Media []media `json:"mediainfo_set,omitempty"`
@@ -216,6 +222,11 @@ type contact struct {
 type media struct {
 	Type  int    `json:"type"`
 	Value string `json:"value"`
+}
+
+type note struct {
+	Type     int    `json:"type"`
+	Contents string `json:"contents"`
 }
 
 func prefixHTTP(domain string) string {
