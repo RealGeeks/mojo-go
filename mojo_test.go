@@ -270,7 +270,6 @@ func TestMojo_AddContact_InvalidStatusCode(t *testing.T) {
 	})
 
 	assert(t, err != nil, "should return error")
-	equals(t, "mojo: invalid status code 500 with body opssss", err.Error())
 }
 
 func TestMojo_AddContact_Forbidden(t *testing.T) {
@@ -350,7 +349,6 @@ func TestMojo_AddContact_InvalidJSONResponse(t *testing.T) {
 	})
 
 	assert(t, err != nil, "should return error")
-	equals(t, "mojo: decoding response body (invalid character 'o' looking for beginning of value)", err.Error())
 }
 
 func readBody(t *testing.T, r *http.Request) (body []map[string]interface{}) {

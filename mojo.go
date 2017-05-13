@@ -57,6 +57,41 @@ type Mojo struct {
 	HTTP *http.Client // (optional) http client to perform requests
 }
 
+// AddNote adds a note to an existing contact
+//
+// Return ErrInvalid on validation errors and ErrForbidden if token is invalid
+func (mj *Mojo) AddNote(contactID string, note string) error {
+	data := map[string]interface{}{"api_contact_id": contactID, "contents": note, "type": 1}
+	reqbody, err := json.Marshal(data)
+	if err != nil {
+		return &ErrInvalid{Msg: err.Error()}
+	}
+	url := prefixHTTP(mj.URL) + "/api/notes/"
+	resbody, err := mj.post(url, reqbody)
+	if err != nil {
+		return err
+	}
+	var nfErr nonFieldErr
+	if err := json.Unmarshal(resbody, &nfErr); err != nil {
+		return fmt.Errorf("mojo: POST %s %s decoding %s (%v)", url, string(reqbody), string(reqbody), err)
+	}
+	if msg := nfErr.all(); msg != "" {
+		return &ErrInvalid{Msg: fmt.Sprintf("POST %s %s validation error: %s", url, string(reqbody), nfErr.all())}
+	}
+	return nil
+}
+
+// possible error response body from AddNote that has status 200
+// with body:
+//
+// {"non_field_errors": ["Invalid api_contact_id."]}
+type nonFieldErr struct {
+	Errors []string `json:"non_field_errors"`
+}
+
+func (err nonFieldErr) hasErr() bool { return len(err.Errors) > 0 }
+func (err nonFieldErr) all() string  { return strings.Join(err.Errors, ", ") }
+
 // AddContact creates a new Contact in Mojo
 //
 // Contact ID and GroupID must be provided. At least one contact field should be provided
@@ -68,33 +103,14 @@ func (mj *Mojo) AddContact(contacts ...Contact) error {
 	if err != nil {
 		return &ErrInvalid{Msg: err.Error()}
 	}
-	req, err := http.NewRequest("POST", prefixHTTP(mj.URL)+"/api/contacts/bulk_create/", bytes.NewReader(reqbody))
+	url := prefixHTTP(mj.URL) + "/api/contacts/bulk_create/"
+	resbody, err := mj.post(url, reqbody)
 	if err != nil {
-		return fmt.Errorf("mojo: building request (%v)", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+mj.Token)
-	if mj.HTTP == nil {
-		mj.HTTP = &http.Client{Timeout: 3 * time.Second}
-	}
-	res, err := mj.HTTP.Do(req)
-	if err != nil {
-		return fmt.Errorf("mojo: making request (%v)", err)
-	}
-	defer res.Body.Close()
-	resbody, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("mojo: reading response (%v)", err)
-	}
-	if res.StatusCode == 403 {
-		return newForbidden(resbody)
-	}
-	if res.StatusCode != 200 {
-		return fmt.Errorf("mojo: invalid status code %d with body %v", res.StatusCode, string(resbody))
+		return err
 	}
 	var data mojoResponse
 	if err := json.Unmarshal(resbody, &data); err != nil {
-		return fmt.Errorf("mojo: decoding response body (%v)", err)
+		return fmt.Errorf("mojo: POST %s %s decoding %s (%v)", url, string(reqbody), string(reqbody), err)
 	}
 	if data.isLockedError() {
 		return fmt.Errorf("mojo: %s", data.errorMsg())
@@ -106,6 +122,37 @@ func (mj *Mojo) AddContact(contacts ...Contact) error {
 		return &ErrInvalid{Msg: data.errorMsg()}
 	}
 	return nil
+}
+
+func (mj *Mojo) post(url string, reqbody []byte) (resbody []byte, err error) {
+	req, err := http.NewRequest("POST", url, bytes.NewReader(reqbody))
+	if err != nil {
+		return []byte{}, fmt.Errorf("mojo: POST %s %s fail to build request (%v)", url, string(reqbody), err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+mj.Token)
+	if mj.HTTP == nil {
+		mj.HTTP = &http.Client{Timeout: 3 * time.Second}
+	}
+	res, err := mj.HTTP.Do(req)
+	if err != nil {
+		return []byte{}, fmt.Errorf("mojo: POST %s %s fail (%v)", url, string(reqbody), err)
+	}
+	defer res.Body.Close()
+	resbody, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		return []byte{}, fmt.Errorf("mojo: POST %s %s fail to read response (%v)", url, string(reqbody), err)
+	}
+	if res.StatusCode == 403 {
+		return []byte{}, newForbidden(resbody)
+	}
+	if res.StatusCode == 400 {
+		return []byte{}, &ErrInvalid{Msg: fmt.Sprintf("POST %s %s %d validation error %s", url, string(reqbody), res.StatusCode, string(resbody))}
+	}
+	if res.StatusCode != 200 {
+		return []byte{}, fmt.Errorf("mojo: POST %s %s status %d with body %v", url, string(reqbody), res.StatusCode, string(resbody))
+	}
+	return resbody, nil
 }
 
 func newForbidden(body []byte) error {
