@@ -110,7 +110,7 @@ func (mj *Mojo) AddContact(contacts ...Contact) error {
 	}
 	var data mojoResponse
 	if err := json.Unmarshal(resbody, &data); err != nil {
-		return fmt.Errorf("mojo: POST %s %s decoding %s (%v)", url, string(reqbody), string(reqbody), err)
+		return fmt.Errorf("mojo: POST %s %s decoding %s (%v)", url, string(reqbody), string(resbody), err)
 	}
 	if data.isLockedError() {
 		return fmt.Errorf("mojo: %s", data.errorMsg())
