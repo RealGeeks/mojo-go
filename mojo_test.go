@@ -30,7 +30,7 @@ func TestMojoContact_MarshalJSON(t *testing.T) {
 		State:       "HI",
 		Zip:         "12345",
 		MobilePhone: "123-331-1245",
-		WorkPhone:   "1238889999",
+		WorkPhone:   "+11238889999",
 		HomePhone:   "(891) 234-1213",
 		Notes:       []string{"called him today", "should mention new home"},
 	}

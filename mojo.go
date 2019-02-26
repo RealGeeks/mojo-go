@@ -245,6 +245,7 @@ func (c Contact) MarshalJSON() ([]byte, error) {
 }
 
 func cleanPhone(ph string) string {
+	ph = strings.TrimPrefix(ph, "+1")
 	ph = strings.Replace(ph, "(", "", -1)
 	ph = strings.Replace(ph, ")", "", -1)
 	ph = strings.Replace(ph, "-", "", -1)
